@@ -70,5 +70,5 @@ for (const file of commandFiles) {
 
 // Login to Discord with your client's token
 client.login(process.env.TOKEN || config.token);
-  .then(() => console.log('Bot logged in successfully'))
+  .then(() => console.log('Bot logged in successfully'));
   .catch(error => console.error('Failed to log in:', error));
