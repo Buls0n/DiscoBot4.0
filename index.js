@@ -69,6 +69,6 @@ for (const file of commandFiles) {
 // Help command is loaded from commands directory
 
 // Login to Discord with your client's token
-client.login(process.env.TOKEN || config.token);
-  .then(() => console.log('Bot logged in successfully'));
+client.login(process.env.TOKEN || config.token)
+  .then(() => console.log('Bot logged in successfully'))
   .catch(error => console.error('Failed to log in:', error));
