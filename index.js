@@ -1,6 +1,7 @@
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const { createAudioPlayer, createAudioResource, joinVoiceChannel, AudioPlayerStatus } = require('@discordjs/voice');
 const fs = require('fs');
+require('dotenv').config();
 client.login(process.env.TOKEN);
 
 // Create a new client instance
@@ -68,6 +69,6 @@ for (const file of commandFiles) {
 // Help command is loaded from commands directory
 
 // Login to Discord with your client's token
-client.login(config.token)
+client.login(process.env.TOKEN || config.token);
   .then(() => console.log('Bot logged in successfully'))
   .catch(error => console.error('Failed to log in:', error));
