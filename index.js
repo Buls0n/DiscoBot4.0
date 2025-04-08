@@ -1,8 +1,19 @@
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const { createAudioPlayer, createAudioResource, joinVoiceChannel, AudioPlayerStatus } = require('@discordjs/voice');
 const fs = require('fs');
-require('dotenv').config();
-client.login(process.env.TOKEN);
+require('dotenv').config(); // For loading environment variables
+
+// Load config, with fallback for environment variables
+let config;
+try {
+  config = require('./config.json');
+} catch (error) {
+  console.log('No config.json found, using environment variables');
+  config = {
+    prefix: process.env.PREFIX || '!',
+    activity: process.env.ACTIVITY || '!help | Music'
+  };
+}
 
 // Create a new client instance
 const client = new Client({
@@ -53,22 +64,37 @@ client.on('error', error => {
 });
 
 // Load commands
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
-console.log(`Loading ${commandFiles.length} commands...`);
+console.log('Loading commands...');
+try {
+  const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+  console.log(`Found ${commandFiles.length} command files`);
 
-for (const file of commandFiles) {
-  try {
-    const command = require(`./commands/${file}`);
-    client.commands.set(command.name, command);
-    console.log(`Loaded command: ${command.name}`);
-  } catch (error) {
-    console.error(`Error loading command ${file}:`, error);
+  for (const file of commandFiles) {
+    try {
+      const command = require(`./commands/${file}`);
+      client.commands.set(command.name, command);
+      console.log(`Loaded command: ${command.name}`);
+    } catch (error) {
+      console.error(`Error loading command ${file}:`, error);
+    }
   }
+} catch (error) {
+  console.error('Error loading commands directory:', error);
 }
 
 // Help command is loaded from commands directory
 
-// Login to Discord with your client's token
-client.login(process.env.TOKEN || config.token)
+// Login to Discord with your client's token (using environment variable or config file)
+const token = process.env.TOKEN || config.token;
+if (!token) {
+  console.error('No token provided! Set TOKEN environment variable or add token to config.json');
+  process.exit(1);
+}
+
+console.log('Attempting to log in...');
+client.login(token)
   .then(() => console.log('Bot logged in successfully'))
-  .catch(error => console.error('Failed to log in:', error));
+  .catch(error => {
+    console.error('Failed to log in:', error);
+    process.exit(1);
+  });
