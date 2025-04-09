@@ -1,6 +1,27 @@
-// Enhanced audioEffects.js with improved error handling for Railway
+// Enhanced ytdl-core audioEffects.js with environment variable support
 const { createAudioResource } = require('@discordjs/voice');
-const play = require('play-dl');
+const ytdl = require('ytdl-core');
+const fs = require('fs');
+const path = require('path');
+
+// Try to load cookies from environment variable first, then fallback to file
+let cookies = process.env.YOUTUBE_COOKIES || '';
+if (cookies) {
+  console.log('Using YouTube cookies from environment variables');
+} else {
+  // Fallback to file-based cookies if environment variable is not set
+  try {
+    const cookiesPath = path.join(__dirname, '..', 'youtube-cookies.txt');
+    if (fs.existsSync(cookiesPath)) {
+      cookies = fs.readFileSync(cookiesPath, 'utf8');
+      console.log('YouTube cookies loaded from file');
+    } else {
+      console.log('No YouTube cookies file found');
+    }
+  } catch (error) {
+    console.error('Error loading YouTube cookies:', error);
+  }
+}
 
 /**
  * Apply nightcore effect to audio stream
@@ -60,26 +81,40 @@ async function createAudioResourceWithEffects(url, queue) {
   try {
     console.log(`Attempting to stream from URL: ${url}`);
     
-    // Use play-dl with more options for better compatibility
-    const stream = await play.stream(url, {
-      discordPlayerCompatibility: true,
-      quality: 1,  // Use highest quality
-      seek: 0,
+    // Configure ytdl options with cookies for authentication
+    const ytdlOptions = {
+      filter: 'audioonly',
+      quality: 'highestaudio',
+      highWaterMark: 1 << 25, // 32MB buffer
       requestOptions: {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          Cookie: cookies,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9'
         }
       }
+    };
+    
+    // Log if we're using cookies
+    if (cookies) {
+      console.log('Using YouTube cookies for authentication');
+    } else {
+      console.log('No YouTube cookies available, attempting without authentication');
+    }
+    
+    // Create stream with ytdl-core
+    const audioStream = ytdl(url, ytdlOptions);
+    
+    // Set up error handling for the stream
+    audioStream.on('error', (error) => {
+      console.error('YouTube stream error:', error);
     });
     
-    console.log("Stream created successfully");
-    console.log(`Stream type: ${stream.type}`);
-    
     // Apply effects if enabled
-    let audioStream = stream.stream;
+    let processedStream = audioStream;
     
     if (queue.nightcoreEnabled) {
-      audioStream = applyNightcoreEffect(audioStream, true);
+      processedStream = applyNightcoreEffect(processedStream, true);
     }
     
     // Apply equalizer if any settings are non-zero
@@ -88,14 +123,13 @@ async function createAudioResourceWithEffects(url, queue) {
                          queue.equalizer.treble !== 0;
     
     if (hasEqSettings) {
-      audioStream = applyEqualizerSettings(audioStream, queue.equalizer);
+      processedStream = applyEqualizerSettings(processedStream, queue.equalizer);
     }
     
-    // Create and return the audio resource with more options
-    const resource = createAudioResource(audioStream, {
-      inputType: stream.type,
-      inlineVolume: true,
-      silencePaddingFrames: 5
+    // Create and return the audio resource
+    const resource = createAudioResource(processedStream, {
+      inputType: 'opus',
+      inlineVolume: true
     });
     
     console.log("Audio resource created successfully");
