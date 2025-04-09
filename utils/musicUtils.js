@@ -1,7 +1,8 @@
-// Modified musicUtils.js for Railway deployment with yt-dlp
+// Verify that the musicUtils.js file is updated to work with our new implementations
 const { createAudioPlayer, joinVoiceChannel, AudioPlayerStatus, VoiceConnectionStatus } = require('@discordjs/voice');
 const { PermissionsBitField } = require('discord.js');
 const ytdlpUtils = require('./ytdlpUtils');
+const { restartCurrentSongWithEffects } = require('./audioEffects');
 
 // Queue structure for each guild
 class MusicQueue {
@@ -86,7 +87,7 @@ async function playSong(queue) {
     // Import audio effects utility
     const { createAudioResourceWithEffects } = require('./audioEffects');
     
-    // Create audio resource with effects using yt-dlp
+    // Create audio resource with effects using optimized streaming
     const resource = await createAudioResourceWithEffects(queue.currentSong.url, queue);
     queue.player.play(resource);
     
@@ -130,10 +131,18 @@ function formatDuration(seconds) {
   return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
 }
 
+// Update current song with new effects
+async function updateCurrentSongEffects(queue) {
+  if (queue.currentSong) {
+    await restartCurrentSongWithEffects(queue);
+  }
+}
+
 module.exports = {
   MusicQueue,
   getQueue,
   joinChannel,
   playSong,
-  searchSong
+  searchSong,
+  updateCurrentSongEffects
 };

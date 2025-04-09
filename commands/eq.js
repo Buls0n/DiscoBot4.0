@@ -1,10 +1,11 @@
+// Optimized eq.js with immediate effect application
 const { getQueue } = require('../utils/musicUtils');
-const { applyEqualizerSettings } = require('../utils/audioEffects');
+const { restartCurrentSongWithEffects } = require('../utils/audioEffects');
 
 module.exports = {
   name: 'eq',
-  description: 'Opens a table or interface where users can input custom equalizer settings',
-  execute(message, args) {
+  description: 'Adjusts equalizer settings for bass, mid, and treble',
+  async execute(message, args) {
     const queue = getQueue(message.client, message.guild.id);
     
     if (!queue.connection) {
@@ -59,9 +60,6 @@ module.exports = {
     queue.equalizer.mid = mid;
     queue.equalizer.treble = treble;
     
-    // Apply equalizer settings (placeholder in this implementation)
-    applyEqualizerSettings(null, queue.equalizer);
-    
     // Create rich embed for updated settings
     const embed = {
       color: 0x3498db,
@@ -81,8 +79,8 @@ module.exports = {
     
     message.channel.send({ embeds: [embed] });
     
-    // Note: For the effect to actually apply to the current song,
-    // we would need to restart playback with the new effect settings
-    message.channel.send('*Note: The settings will apply to the next song or when the current song is restarted.*');
+    // Apply equalizer settings immediately
+    message.channel.send('*Applying equalizer settings to current song...*');
+    await restartCurrentSongWithEffects(queue);
   }
 };
