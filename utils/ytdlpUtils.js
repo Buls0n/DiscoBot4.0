@@ -1,4 +1,4 @@
-// ytdlpUtils.js - Utility for handling yt-dlp operations
+// Updated ytdlpUtils.js with better yt-dlp path handling
 const YTDlpWrap = require('yt-dlp-wrap').default;
 const { createWriteStream } = require('fs');
 const { join } = require('path');
@@ -8,8 +8,29 @@ const cookieManager = require('./cookieUtils');
 
 const execAsync = promisify(exec);
 
-// Initialize yt-dlp wrapper
-const ytDlpWrap = new YTDlpWrap();
+// Try to find yt-dlp in different possible locations
+const ytDlpPaths = [
+  'yt-dlp',
+  '/usr/local/bin/yt-dlp',
+  '/usr/bin/yt-dlp',
+  '/bin/yt-dlp'
+];
+
+let ytDlpWrap;
+for (const path of ytDlpPaths) {
+  try {
+    ytDlpWrap = new YTDlpWrap(path);
+    console.log(`Found yt-dlp at: ${path}`);
+    break;
+  } catch (error) {
+    console.log(`yt-dlp not found at: ${path}`);
+  }
+}
+
+if (!ytDlpWrap) {
+  console.error('Could not find yt-dlp in any expected location');
+  ytDlpWrap = new YTDlpWrap('yt-dlp'); // Fallback to default
+}
 
 /**
  * Utility class for yt-dlp operations
@@ -70,7 +91,10 @@ class YtdlpUtils {
       }
       
       // Execute yt-dlp command
-      const { stdout } = await execAsync(`yt-dlp ${args.join(' ')}`);
+      const command = `${ytDlpWrap.getBinaryPath()} ${args.join(' ')}`;
+      console.log(`Executing command: ${command}`);
+      
+      const { stdout } = await execAsync(command);
       
       // Parse JSON results (one per line)
       const results = stdout.trim().split('\n').map(line => JSON.parse(line));
