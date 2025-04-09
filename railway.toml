@@ -1,10 +1,13 @@
-# Railway Deployment Configuration
+version = 2
 
-# Node.js version
-NODE_VERSION=20
+[build]
+builder = "nixpacks"
+buildCommand = "apt-get update && apt-get install -y ffmpeg"
 
-# Command to run the bot
-CMD="node index.js"
+[deploy]
+startCommand = "node index.js"
+healthcheckPath = "/"
+healthcheckTimeout = 100
 
-# Use custom build script
-BUILD_COMMAND="bash ./build.sh"
+[phases.setup]
+nixPkgs = ["ffmpeg"]
