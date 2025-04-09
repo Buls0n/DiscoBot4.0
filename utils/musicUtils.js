@@ -1,6 +1,5 @@
-// Modified musicUtils.js for Discord.js v14 compatibility
+// Utility functions for music commands
 const { createAudioPlayer, createAudioResource, joinVoiceChannel, AudioPlayerStatus, VoiceConnectionStatus } = require('@discordjs/voice');
-const { PermissionsBitField } = require('discord.js');
 const ytdl = require('ytdl-core');
 const yts = require('yt-search');
 
@@ -39,9 +38,8 @@ async function joinChannel(message) {
     return null;
   }
   
-  // Updated permissions check for Discord.js v14
   const permissions = voiceChannel.permissionsFor(message.client.user);
-  if (!permissions.has(PermissionsBitField.Flags.Connect) || !permissions.has(PermissionsBitField.Flags.Speak)) {
+  if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
     message.reply('I need permissions to join and speak in your voice channel!');
     return null;
   }

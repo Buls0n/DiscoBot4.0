@@ -3,7 +3,7 @@ module.exports = {
   name: 'help',
   description: 'Displays a list of available commands',
   execute(message, args) {
-    const prefix = process.env.PREFIX || '!';
+    const { prefix } = require('../config.json');
     
     let helpText = '🎵 **Discord Music Bot Commands** 🎵\n\n';
     
