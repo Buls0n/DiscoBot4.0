@@ -1,5 +1,6 @@
-// Updated ytdlpUtils.js with virtual environment path
+// Updated ytdlpUtils.js with improved audio streaming functionality
 const YTDlpWrap = require('yt-dlp-wrap').default;
+const fs = require('fs');
 const { createWriteStream } = require('fs');
 const { join } = require('path');
 const { promisify } = require('util');
@@ -7,6 +8,7 @@ const { exec, execSync } = require('child_process');
 const cookieManager = require('./cookieUtils');
 
 const execAsync = promisify(exec);
+const unlinkAsync = promisify(fs.unlink);
 
 // Try to find the exact path to yt-dlp
 let ytdlpPath;
@@ -50,6 +52,12 @@ if (!ytDlpWrap) {
 class YtdlpUtils {
   constructor() {
     this.tempDir = join(__dirname, '..', 'temp');
+    
+    // Ensure temp directory exists
+    if (!fs.existsSync(this.tempDir)) {
+      fs.mkdirSync(this.tempDir, { recursive: true });
+      console.log(`Created temp directory: ${this.tempDir}`);
+    }
   }
 
   /**
@@ -59,6 +67,7 @@ class YtdlpUtils {
    */
   async getVideoInfo(url) {
     try {
+      console.log(`Getting video info for: ${url}`);
       const args = [url, '--dump-json'];
       
       // Add cookies if available
@@ -66,7 +75,13 @@ class YtdlpUtils {
         args.push('--cookies', cookieManager.getCookiePath());
       }
       
-      const videoInfo = await ytDlpWrap.getVideoInfo(url);
+      // Execute yt-dlp command using full path
+      const command = `${ytdlpPath} ${args.join(' ')}`;
+      console.log(`Executing command: ${command}`);
+      
+      const { stdout } = await execAsync(command);
+      const videoInfo = JSON.parse(stdout);
+      
       return {
         title: videoInfo.title,
         url: url,
@@ -183,11 +198,18 @@ class YtdlpUtils {
    */
   async getAudioStream(url) {
     try {
+      console.log(`Getting audio stream for: ${url}`);
+      
+      // Create a unique temp file path
+      const tempFile = join(this.tempDir, `${Date.now()}.mp3`);
+      
+      // Build yt-dlp command with proper audio extraction
       const args = [
         url,
-        '-f', 'bestaudio',
-        '--no-playlist',
-        '-o', '-'  // Output to stdout
+        '-x',
+        '--audio-format', 'mp3',
+        '-o', tempFile,
+        '--no-playlist'
       ];
       
       // Add cookies if available
@@ -195,8 +217,22 @@ class YtdlpUtils {
         args.push('--cookies', cookieManager.getCookiePath());
       }
       
-      // Get stream
-      const stream = ytDlpWrap.execStream(args);
+      console.log(`Downloading audio with args: ${args.join(' ')}`);
+      
+      // Download the audio file first
+      await ytDlpWrap.execPromise(args);
+      console.log(`Audio downloaded to: ${tempFile}`);
+      
+      // Create a readable stream from the downloaded file
+      const stream = fs.createReadStream(tempFile);
+      
+      // Set up cleanup to delete the temp file when the stream ends
+      stream.on('end', () => {
+        console.log(`Cleaning up temp file: ${tempFile}`);
+        fs.unlink(tempFile, (err) => {
+          if (err) console.error(`Error deleting temp file: ${err}`);
+        });
+      });
       
       return {
         stream,
