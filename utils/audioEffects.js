@@ -1,4 +1,4 @@
-// Final audioEffects.js for Railway deployment with play-dl
+// Enhanced audioEffects.js with improved error handling for Railway
 const { createAudioResource } = require('@discordjs/voice');
 const play = require('play-dl');
 
@@ -58,8 +58,22 @@ function applyEqualizerSettings(stream, settings) {
  */
 async function createAudioResourceWithEffects(url, queue) {
   try {
-    // Use play-dl instead of ytdl-core for better compatibility
-    const stream = await play.stream(url);
+    console.log(`Attempting to stream from URL: ${url}`);
+    
+    // Use play-dl with more options for better compatibility
+    const stream = await play.stream(url, {
+      discordPlayerCompatibility: true,
+      quality: 1,  // Use highest quality
+      seek: 0,
+      requestOptions: {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      }
+    });
+    
+    console.log("Stream created successfully");
+    console.log(`Stream type: ${stream.type}`);
     
     // Apply effects if enabled
     let audioStream = stream.stream;
@@ -77,11 +91,21 @@ async function createAudioResourceWithEffects(url, queue) {
       audioStream = applyEqualizerSettings(audioStream, queue.equalizer);
     }
     
-    // Create and return the audio resource
-    return createAudioResource(audioStream, {
+    // Create and return the audio resource with more options
+    const resource = createAudioResource(audioStream, {
       inputType: stream.type,
-      inlineVolume: true
+      inlineVolume: true,
+      silencePaddingFrames: 5
     });
+    
+    console.log("Audio resource created successfully");
+    
+    if (resource.volume) {
+      resource.volume.setVolume(queue.volume);
+      console.log(`Volume set to ${queue.volume}`);
+    }
+    
+    return resource;
   } catch (error) {
     console.error('Error creating audio resource with effects:', error);
     throw error;
