@@ -1,4 +1,4 @@
-// Updated ytdlpUtils.js with full path execution
+// Updated ytdlpUtils.js with virtual environment path
 const YTDlpWrap = require('yt-dlp-wrap').default;
 const { createWriteStream } = require('fs');
 const { join } = require('path');
@@ -21,6 +21,7 @@ try {
 // Try to find yt-dlp in different possible locations
 const ytDlpPaths = [
   ytdlpPath,
+  '/opt/venv/bin/yt-dlp', // Virtual environment path
   'yt-dlp',
   '/usr/local/bin/yt-dlp',
   '/usr/bin/yt-dlp',
@@ -96,6 +97,15 @@ class YtdlpUtils {
         console.log(`yt-dlp version: ${versionInfo.trim()}`);
       } catch (error) {
         console.error('Error checking yt-dlp installation:', error);
+        
+        // Try with virtual environment path
+        try {
+          const { stdout: venvOutput } = await execAsync('/opt/venv/bin/yt-dlp --version');
+          console.log(`yt-dlp in virtual environment: ${venvOutput.trim()}`);
+          ytdlpPath = '/opt/venv/bin/yt-dlp';
+        } catch (venvError) {
+          console.error('Error checking virtual environment yt-dlp:', venvError);
+        }
       }
       
       // Use ytsearch prefix for YouTube search
