@@ -1,15 +1,26 @@
-// Updated ytdlpUtils.js with better yt-dlp path handling
+// Updated ytdlpUtils.js with full path execution
 const YTDlpWrap = require('yt-dlp-wrap').default;
 const { createWriteStream } = require('fs');
 const { join } = require('path');
 const { promisify } = require('util');
-const { exec } = require('child_process');
+const { exec, execSync } = require('child_process');
 const cookieManager = require('./cookieUtils');
 
 const execAsync = promisify(exec);
 
+// Try to find the exact path to yt-dlp
+let ytdlpPath;
+try {
+  ytdlpPath = execSync('which yt-dlp').toString().trim();
+  console.log(`Found yt-dlp at: ${ytdlpPath}`);
+} catch (error) {
+  console.error('Error finding yt-dlp path:', error);
+  ytdlpPath = 'yt-dlp'; // Fallback to default
+}
+
 // Try to find yt-dlp in different possible locations
 const ytDlpPaths = [
+  ytdlpPath,
   'yt-dlp',
   '/usr/local/bin/yt-dlp',
   '/usr/bin/yt-dlp',
@@ -76,6 +87,17 @@ class YtdlpUtils {
    */
   async searchVideos(query, limit = 10) {
     try {
+      // Check if yt-dlp is installed and working
+      try {
+        const { stdout: versionOutput } = await execAsync('which yt-dlp');
+        console.log(`yt-dlp found at: ${versionOutput.trim()}`);
+        
+        const { stdout: versionInfo } = await execAsync('yt-dlp --version');
+        console.log(`yt-dlp version: ${versionInfo.trim()}`);
+      } catch (error) {
+        console.error('Error checking yt-dlp installation:', error);
+      }
+      
       // Use ytsearch prefix for YouTube search
       const searchUrl = `ytsearch${limit}:${query}`;
       
@@ -90,8 +112,8 @@ class YtdlpUtils {
         args.push('--cookies', cookieManager.getCookiePath());
       }
       
-      // Execute yt-dlp command
-      const command = `${ytDlpWrap.getBinaryPath()} ${args.join(' ')}`;
+      // Execute yt-dlp command using full path
+      const command = `${ytdlpPath} ${args.join(' ')}`;
       console.log(`Executing command: ${command}`);
       
       const { stdout } = await execAsync(command);
