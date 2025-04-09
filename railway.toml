@@ -6,8 +6,6 @@ NODE_VERSION=20
 # Command to run the bot
 CMD="node index.js"
 
-# Create temp directory for yt-dlp downloads
-PRE_BUILD="mkdir -p temp"
-
-# Install yt-dlp if not already installed
-PRE_DEPLOY="pip install yt-dlp"
+# Install Python and yt-dlp before running the app
+NIXPACKS_PKGS="python3 python3-pip ffmpeg"
+BUILD_COMMAND="pip install yt-dlp && mkdir -p temp"
