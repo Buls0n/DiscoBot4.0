@@ -1,7 +1,7 @@
-// Utility functions for music commands
+// Final musicUtils.js for Railway deployment with play-dl
 const { createAudioPlayer, createAudioResource, joinVoiceChannel, AudioPlayerStatus, VoiceConnectionStatus } = require('@discordjs/voice');
-const ytdl = require('ytdl-core');
-const yts = require('yt-search');
+const { PermissionsBitField } = require('discord.js');
+const play = require('play-dl');
 
 // Queue structure for each guild
 class MusicQueue {
@@ -38,8 +38,9 @@ async function joinChannel(message) {
     return null;
   }
   
+  // Updated permissions check for Discord.js v14
   const permissions = voiceChannel.permissionsFor(message.client.user);
-  if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
+  if (!permissions.has(PermissionsBitField.Flags.Connect) || !permissions.has(PermissionsBitField.Flags.Speak)) {
     message.reply('I need permissions to join and speak in your voice channel!');
     return null;
   }
@@ -106,12 +107,27 @@ async function playSong(queue) {
 // Search for a song on YouTube
 async function searchSong(query) {
   try {
-    const result = await yts(query);
-    return result.videos.slice(0, 10);
+    // Use play-dl instead of yt-search for better compatibility
+    const searchResults = await play.search(query, { limit: 10 });
+    return searchResults.map(video => ({
+      title: video.title,
+      url: video.url,
+      duration: { seconds: video.durationInSec },
+      timestamp: formatDuration(video.durationInSec),
+      thumbnail: video.thumbnails[0].url,
+      author: { name: video.channel.name }
+    }));
   } catch (error) {
     console.error(error);
     return [];
   }
+}
+
+// Helper function to format duration
+function formatDuration(seconds) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
 }
 
 module.exports = {
