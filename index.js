@@ -1,7 +1,14 @@
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const { createAudioPlayer, createAudioResource, joinVoiceChannel, AudioPlayerStatus } = require('@discordjs/voice');
 const fs = require('fs');
+const path = require('path');
 require('dotenv').config(); // For loading environment variables
+
+// Initialize cookie manager
+const cookieManager = require('./utils/cookieUtils');
+
+// Create temp directory
+require('./utils/setupTemp');
 
 // Load config, with fallback for environment variables
 let config;
@@ -30,10 +37,19 @@ client.commands = new Collection();
 client.queues = new Map();
 
 // When the client is ready, run this code
-client.once('ready', () => {
+client.once('ready', async () => {
   console.log(`Logged in as ${client.user.tag}!`);
   console.log(`Bot is ready to serve in ${client.guilds.cache.size} servers`);
   client.user.setActivity(config.activity);
+  
+  // Initialize cookies from environment variable
+  const cookiesInitialized = await cookieManager.initFromEnvironment();
+  if (cookiesInitialized) {
+    console.log('YouTube cookies initialized successfully');
+  } else {
+    console.log('No YouTube cookies found in environment variables');
+    console.log('Some YouTube videos may not be accessible without authentication');
+  }
 });
 
 // Command handler

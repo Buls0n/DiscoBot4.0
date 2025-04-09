@@ -1,0 +1,15 @@
+# Railway Deployment Configuration
+
+# Node.js version
+NODE_VERSION=20.x
+
+# Command to run the bot
+CMD=node index.js
+
+# Create temp directory for yt-dlp downloads
+mkdir -p temp
+
+# Install yt-dlp if not already installed
+if ! command -v yt-dlp &> /dev/null; then
+    pip install yt-dlp
+fi

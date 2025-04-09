@@ -1,7 +1,7 @@
-// Final musicUtils.js for Railway deployment with play-dl
-const { createAudioPlayer, createAudioResource, joinVoiceChannel, AudioPlayerStatus, VoiceConnectionStatus } = require('@discordjs/voice');
+// Modified musicUtils.js for Railway deployment with yt-dlp
+const { createAudioPlayer, joinVoiceChannel, AudioPlayerStatus, VoiceConnectionStatus } = require('@discordjs/voice');
 const { PermissionsBitField } = require('discord.js');
-const play = require('play-dl');
+const ytdlpUtils = require('./ytdlpUtils');
 
 // Queue structure for each guild
 class MusicQueue {
@@ -86,7 +86,7 @@ async function playSong(queue) {
     // Import audio effects utility
     const { createAudioResourceWithEffects } = require('./audioEffects');
     
-    // Create audio resource with effects
+    // Create audio resource with effects using yt-dlp
     const resource = await createAudioResourceWithEffects(queue.currentSong.url, queue);
     queue.player.play(resource);
     
@@ -104,18 +104,18 @@ async function playSong(queue) {
   }
 }
 
-// Search for a song on YouTube
+// Search for a song on YouTube using yt-dlp
 async function searchSong(query) {
   try {
-    // Use play-dl instead of yt-search for better compatibility
-    const searchResults = await play.search(query, { limit: 10 });
+    // Use ytdlpUtils instead of play-dl
+    const searchResults = await ytdlpUtils.searchVideos(query, 10);
     return searchResults.map(video => ({
       title: video.title,
       url: video.url,
-      duration: { seconds: video.durationInSec },
-      timestamp: formatDuration(video.durationInSec),
-      thumbnail: video.thumbnails[0].url,
-      author: { name: video.channel.name }
+      duration: { seconds: video.duration },
+      timestamp: formatDuration(video.duration),
+      thumbnail: video.thumbnail,
+      author: { name: video.author.name }
     }));
   } catch (error) {
     console.error(error);
