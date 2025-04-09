@@ -1,6 +1,6 @@
+// Final play.js for Railway deployment with play-dl
 const { getQueue, joinChannel, playSong } = require('../utils/musicUtils');
-const ytdl = require('ytdl-core');
-const yts = require('yt-search');
+const play = require('play-dl');
 
 module.exports = {
   name: 'play',
@@ -20,13 +20,17 @@ module.exports = {
       message.channel.send(`🔍 Searching for: **${query}**`);
       
       // Check if the argument is a valid YouTube URL
-      if (ytdl.validateURL(query)) {
-        const songInfo = await ytdl.getInfo(query);
+      const isUrl = play.yt_validate(query) === 'video';
+      
+      if (isUrl) {
+        const videoInfo = await play.video_info(query);
+        const video = videoInfo.video_details;
+        
         const song = {
-          title: songInfo.videoDetails.title,
-          url: songInfo.videoDetails.video_url,
-          duration: parseInt(songInfo.videoDetails.lengthSeconds),
-          thumbnail: songInfo.videoDetails.thumbnails[0].url,
+          title: video.title,
+          url: video.url,
+          duration: video.durationInSec,
+          thumbnail: video.thumbnails[0].url,
           requestedBy: message.author.tag
         };
         
@@ -55,17 +59,17 @@ module.exports = {
         }
       } else {
         // Search for the song on YouTube
-        const videos = await yts(query);
-        if (!videos.videos.length) {
+        const searchResults = await play.search(query, { limit: 1 });
+        if (!searchResults.length) {
           return message.reply('No search results found!');
         }
         
-        const video = videos.videos[0];
+        const video = searchResults[0];
         const song = {
           title: video.title,
           url: video.url,
-          duration: video.seconds,
-          thumbnail: video.thumbnail,
+          duration: video.durationInSec,
+          thumbnail: video.thumbnails[0].url,
           requestedBy: message.author.tag
         };
         
